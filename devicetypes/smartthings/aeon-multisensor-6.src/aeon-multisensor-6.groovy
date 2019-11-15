@@ -76,7 +76,7 @@ metadata {
 		input "motionSensitivity", "enum", title: "Motion Sensor Sensitivity", options: ["maximum", "normal", "minimum", "disabled"]
 
 		input "reportInterval", "enum", title: "Report Interval", description: "How often the device should report in minutes",
-			options: ["8 minutes", "15 minutes", "30 minutes", "1 hour", "6 hours", "12 hours", "18 hours", "24 hours"]
+			options: ["1 minute", "5 minutes", "10 minutes", "15 minutes", "30 minutes", "1 hour", "6 hours", "12 hours", "18 hours", "24 hours"]
 	}
 
 	tiles(scale: 2) {
