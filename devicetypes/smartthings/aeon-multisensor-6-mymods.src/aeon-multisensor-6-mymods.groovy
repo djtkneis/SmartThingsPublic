@@ -76,7 +76,7 @@ metadata {
 		input "motionSensitivity", "enum", title: "Motion Sensor Sensitivity", options: ["maximum", "normal", "minimum", "disabled"]
 
 		input "reportInterval", "enum", title: "Report Interval", description: "How often the device should report",
-			options: ["1 minute", "5 minutes", "10 minutes", "15 minutes", "30 minutes", "1 hour", "6 hours", "12 hours", "18 hours", "24 hours"]
+			options: ["8 minutes", "15 minutes", "30 minutes", "1 hour", "6 hours", "12 hours", "18 hours", "24 hours"]
 	}
 
 	tiles(scale: 2) {
@@ -369,12 +369,15 @@ def zwaveEvent(physicalgraph.zwave.Command cmd) {
  * PING is used by Device-Watch in attempt to reach the Device
  * */
 def ping() {
+	/******** AN - Intentionally commenting out this section of code to always honor the check interval set in the device preferences
 	if (device.latestValue("powerSource") == "battery") {
 		log.debug "Can't ping a wakeup device on battery"
 	} else {
 		//dc or unknown - get sensor report
 		command(zwave.sensorMultilevelV5.sensorMultilevelGet(sensorType: 0x01)) //poll the temperature to ping
 	}
+  	*/  
+    command(zwave.sensorMultilevelV5.sensorMultilevelGet(sensorType: 0x01)) //poll the temperature to ping
 }
 
 def configure() {
