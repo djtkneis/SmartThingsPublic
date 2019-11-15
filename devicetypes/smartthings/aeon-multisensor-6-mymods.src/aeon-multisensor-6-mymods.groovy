@@ -132,9 +132,9 @@ metadata {
 }
 
 def installed() {
-// Device-Watch simply pings if no device events received for 122min(checkInterval)
+	log.debug "installed() called"
+	// Device-Watch simply pings if no device events received for 122min(checkInterval)
 	sendEvent(name: "checkInterval", value: 2 * 60 * 60 + 2 * 60, displayed: false, data: [protocol: "zwave", hubHardwareId: device.hub.hardwareID])
-
 	sendEvent(name: "tamper", value: "clear", displayed: false)
 }
 
@@ -181,6 +181,8 @@ def parse(String description) {
 
 //this notification will be sent only when device is battery powered
 def zwaveEvent(physicalgraph.zwave.commands.wakeupv1.WakeUpNotification cmd) {
+	log.debug "zwaveEvent 'WakeUpNotification' - cmd: ${cmd}"
+
 	def result = [createEvent(descriptionText: "${device.displayName} woke up", isStateChange: false)]
 	def cmds = []
 	if (!isConfigured()) {
@@ -195,6 +197,8 @@ def zwaveEvent(physicalgraph.zwave.commands.wakeupv1.WakeUpNotification cmd) {
 }
 
 def zwaveEvent(physicalgraph.zwave.commands.securityv1.SecurityMessageEncapsulation cmd) {
+	log.debug "zwaveEvent 'SecurityMessageEncapsulation' - cmd: ${cmd}"
+
 	state.sec = 1
 	def result = []
 	//we need to catch payload so short that it does not contain configuration parameter size (NullPointerException)
@@ -216,11 +220,15 @@ def zwaveEvent(physicalgraph.zwave.commands.securityv1.SecurityMessageEncapsulat
 }
 
 def zwaveEvent(physicalgraph.zwave.commands.securityv1.SecurityCommandsSupportedReport cmd) {
+	log.debug "zwaveEvent 'SecurityCommandsSupportedReport' - cmd: ${cmd}"
+    
 	log.info "Executing zwaveEvent 98 (SecurityV1): 03 (SecurityCommandsSupportedReport) with cmd: $cmd"
 	state.sec = 1
 }
 
 def zwaveEvent(physicalgraph.zwave.commands.securityv1.NetworkKeyVerify cmd) {
+	log.debug "zwaveEvent 'NetworkKeyVerify' - cmd: ${cmd}"
+    
 	state.sec = 1
 	log.info "Executing zwaveEvent 98 (SecurityV1): 07 (NetworkKeyVerify) with cmd: $cmd (node is securely included)"
 	def result = [createEvent(name: "secureInclusion", value: "success", descriptionText: "Secure inclusion was successful", isStateChange: true)]
@@ -228,6 +236,8 @@ def zwaveEvent(physicalgraph.zwave.commands.securityv1.NetworkKeyVerify cmd) {
 }
 
 def zwaveEvent(physicalgraph.zwave.commands.manufacturerspecificv2.ManufacturerSpecificReport cmd) {
+	log.debug "zwaveEvent 'ManufacturerSpecificReport' - cmd: ${cmd}"
+
 	log.info "Executing zwaveEvent 72 (ManufacturerSpecificV2) : 05 (ManufacturerSpecificReport) with cmd: $cmd"
 	log.debug "manufacturerId:   ${cmd.manufacturerId}"
 	log.debug "manufacturerName: ${cmd.manufacturerName}"
@@ -238,6 +248,8 @@ def zwaveEvent(physicalgraph.zwave.commands.manufacturerspecificv2.ManufacturerS
 }
 
 def zwaveEvent(physicalgraph.zwave.commands.batteryv1.BatteryReport cmd) {
+	log.debug "zwaveEvent 'BatteryReport' - cmd: ${cmd}"
+    
 	def result = []
 	def map = [name: "battery", unit: "%"]
 	if (cmd.batteryLevel == 0xFF) {
@@ -256,25 +268,31 @@ def zwaveEvent(physicalgraph.zwave.commands.batteryv1.BatteryReport cmd) {
 }
 
 def zwaveEvent(physicalgraph.zwave.commands.sensormultilevelv5.SensorMultilevelReport cmd) {
+	log.debug "zwaveEvent 'SensorMultilevelReport' - cmd: ${cmd}"
+    
 	def map = [:]
 	switch (cmd.sensorType) {
 		case 1:
+        	log.debug "Getting temperature"
 			map.name = "temperature"
 			def cmdScale = cmd.scale == 1 ? "F" : "C"
 			map.value = convertTemperatureIfNeeded(cmd.scaledSensorValue, cmdScale, cmd.precision)
 			map.unit = getTemperatureScale()
 			break
 		case 3:
+        	log.debug "Getting illuminance"
 			map.name = "illuminance"
 			map.value = cmd.scaledSensorValue.toInteger()
 			map.unit = "lux"
 			break
 		case 5:
+        	log.debug "Getting humidity"
 			map.name = "humidity"
 			map.value = cmd.scaledSensorValue.toInteger()
 			map.unit = "%"
 			break
 		case 0x1B:
+        	log.debug "Getting ultravioletIndex"
 			map.name = "ultravioletIndex"
 			map.value = cmd.scaledSensorValue.toInteger()
 			break
@@ -297,10 +315,14 @@ def motionEvent(value) {
 }
 
 def zwaveEvent(physicalgraph.zwave.commands.sensorbinaryv2.SensorBinaryReport cmd) {
+	log.debug "zwaveEvent 'SensorBinaryReport' - cmd: ${cmd}"
+    
 	motionEvent(cmd.sensorValue)
 }
 
 def zwaveEvent(physicalgraph.zwave.commands.basicv1.BasicSet cmd) {
+	log.debug "zwaveEvent 'BasicSet' - cmd: ${cmd}"
+    
 	motionEvent(cmd.value)
 }
 
@@ -309,6 +331,8 @@ def clearTamper() {
 }
 
 def zwaveEvent(physicalgraph.zwave.commands.notificationv3.NotificationReport cmd) {
+	log.debug "zwaveEvent 'NotificationReport' - cmd: ${cmd}"
+    
 	def result = []
 	if (cmd.notificationType == 7) {
 		switch (cmd.event) {
@@ -334,7 +358,8 @@ def zwaveEvent(physicalgraph.zwave.commands.notificationv3.NotificationReport cm
 }
 
 def zwaveEvent(physicalgraph.zwave.commands.configurationv2.ConfigurationReport cmd) {
-	log.debug "ConfigurationReport: $cmd"
+	log.debug "zwaveEvent 'ConfigurationReport' - cmd: ${cmd}"
+    
 	def result = []
 	def value
 	if (cmd.parameterNumber == 9) {
@@ -361,7 +386,8 @@ def zwaveEvent(physicalgraph.zwave.commands.configurationv2.ConfigurationReport 
 }
 
 def zwaveEvent(physicalgraph.zwave.Command cmd) {
-	log.debug "General zwaveEvent cmd: ${cmd}"
+	log.debug "zwaveEvent 'Command' - cmd: ${cmd}"
+    
 	createEvent(descriptionText: cmd.toString(), isStateChange: false)
 }
 
@@ -376,7 +402,9 @@ def ping() {
 		//dc or unknown - get sensor report
 		command(zwave.sensorMultilevelV5.sensorMultilevelGet(sensorType: 0x01)) //poll the temperature to ping
 	}
-  	*/  
+  	*/
+    
+    log.debug "ping() called on deice"
     command(zwave.sensorMultilevelV5.sensorMultilevelGet(sensorType: 0x01)) //poll the temperature to ping
 }
 
@@ -444,6 +472,9 @@ def configure() {
 	// set the check interval based on the report interval preference. (default 122 minutes)
 	// we do this here in case the device is in wakeup mode
 	def checkInterval = 2 * (timeOptionValueMap[reportInterval] ?: 60 * 60) + 2 * 60
+    log.debug "reportInterval set to ${reportInterval} = ${timeOptionValueMap[reportInterval]}"
+    log.debug "checkInterval set to ${checkInterval}"
+    
 	sendEvent(name: "checkInterval", value: checkInterval, displayed: false, data: [protocol: "zwave", hubHardwareId: device.hub.hardwareID])
 
 	commands(request, (state.sec || zwaveInfo?.zw?.endsWith("s")) ? 2000 : 500) + ["delay 20000", zwave.wakeUpV1.wakeUpNoMoreInformation().format()]
