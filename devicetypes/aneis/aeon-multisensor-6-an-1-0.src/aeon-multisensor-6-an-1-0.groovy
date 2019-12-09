@@ -277,19 +277,36 @@ def updated()
 def parse(String description)
 {
 	log_debug "parse ('${description}')"
-	def result = null
-	if (description.startsWith("Err 106")) {
-		state.sec = 0
-		result = createEvent( name: "secureInclusion", value: "failed", isStateChange: true,
+	def result = []
+    switch(description){
+        case ~/Err 106.*/:
+			state.sec = 0
+			result = createEvent( name: "secureInclusion", value: "failed", isStateChange: true,
 			descriptionText: "This sensor failed to complete the network security key exchange. If you are unable to control it via SmartThings, you must remove it from your network and add it again.")
-	} else if (description != "updated") {
-		def cmd = zwave.parse(description, [0x31: 5, 0x30: 2, 0x7A: 2, 0x84: 1, 0x86: 1])
-		if (cmd) {
-			result = zwaveEvent(cmd)
-		}
+        break
+		case "updated":
+        	result = createEvent( name: "Inclusion", value: "paired", isStateChange: true,
+			descriptionText: "Update is hit when the device is paired")
+            result << response(zwave.wakeUpV1.wakeUpIntervalSet(seconds: 3600, nodeid:zwaveHubNodeId).format())
+            result << response(zwave.batteryV1.batteryGet().format())
+            result << response(zwave.versionV1.versionGet().format())
+            result << response(zwave.manufacturerSpecificV2.manufacturerSpecificGet().format())
+            result << response(configure())
+        break
+        default:
+			def cmd = zwave.parse(description, [0x31: 5, 0x30: 2, 0x84: 1])
+			if (cmd) {
+                try {
+				result += zwaveEvent(cmd)
+                } catch (e) {
+                log.debug "error: $e cmd: $cmd description $description"
+                }
+			}
+        break
 	}
-	//log_debug "Parsed '${description}' to ${result.inspect()}"
-	return result
+    
+    log_debug "parse result = '${result}'"
+    return result
 }
 
 def motionEvent(value)
